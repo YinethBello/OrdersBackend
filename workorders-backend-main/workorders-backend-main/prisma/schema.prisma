@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Facility {
+  id         String      @id @default(cuid())
+  code       String
+  buildings  Building[]
+  equipment  Equipment[]
+  workorders WorkOrder[]
+  zone       Zone        @relation(fields: [zoneId], references: [id])
+  zoneId     String
+  Floors     Floor[]
+}
+
+model Building {
+  id         String   @id @default(cuid())
+  name       String
+  facility   Facility @relation(fields: [facilityId], references: [id])
+  facilityId String
+  floors     Floor[]
+}
+
+model Floor {
+  id          String   @id @default(cuid())
+  floorCode   String
+  description String?
+  building    Building @relation(fields: [buildingId], references: [id])
+  buildingId  String
+  areas       Area[]
+  floorLevel  String
+  facility    Facility @relation(fields: [facilityId], references: [id])
+  facilityId  String
+  Zone        Zone     @relation(fields: [zoneId], references: [id])
+  zoneId      String
+  active      Boolean  @default(true)
+}
+
+model Area {
+  id          String   @id @default(cuid())
+  floor       Floor    @relation(fields: [floorId], references: [id])
+  floorId     String
+  areaType    AreaType @relation(fields: [areaTypeId], references: [id])
+  areaTypeId  String
+  code        String
+  roomNumber  String
+  description String?
+  active      Boolean  @default(true)
+  floorCode   String?
+}
+
+model AreaType {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  areas       Area[]
+}
+
+model Equipment {
+  id              String        @id @default(cuid())
+  tagNumber       String
+  alternateTag    String?
+  facility        Facility      @relation(fields: [facilityId], references: [id])
+  facilityId      String
+  equipmentType   EquipmentType @relation(fields: [equipmentTypeId], references: [id])
+  equipmentTypeId String
+  description     String?
+  make            String
+  active          Boolean       @default(true)
+  modelNumber     String
+  buildingName    String
+  floorLevelNum   String
+  RoomNumber      String
+  Manufacturer    String
+  SerialNumber    String
+}
+
+model EquipmentType {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  equipment   Equipment[]
+}
+
+model WorkOrder {
+  id            String       @id @default(cuid())
+  workOrderId   Int          @unique @default(autoincrement())
+  requestDate   DateTime     @default(now())
+  facility      Facility     @relation(fields: [facilityId], references: [id])
+  facilityId    String
+  workOrderNum  String?      @unique
+  status        Status       @relation(fields: [statusId], references: [id])
+  statusId      String
+  priority      Priority     @relation(fields: [priorityId], references: [id])
+  priorityId    String
+  requestType   RequestType  @relation(fields: [requestTypeId], references: [id])
+  requestTypeId String
+  woOrigin      WoOrigin     @relation(fields: [woOriginId], references: [id])
+  woOriginId    String
+  woType        WoType       @relation(fields: [woTypeId], references: [id])
+  woTypeId      String
+  technicians   Technician[]
+  tasks         Task[]
+}
+
+model Status {
+  id         String      @id @default(cuid())
+  name       String
+  workOrders WorkOrder[]
+}
+
+model Priority {
+  id         String      @id @default(cuid())
+  name       String
+  workOrders WorkOrder[]
+}
+
+model RequestType {
+  id         String      @id @default(cuid())
+  name       String
+  workOrders WorkOrder[]
+}
+
+model WoOrigin {
+  id         String      @id @default(cuid())
+  name       String
+  workOrders WorkOrder[]
+}
+
+model WoType {
+  id         String      @id @default(cuid())
+  name       String
+  workOrders WorkOrder[]
+}
+
+model Technician {
+  id              String       @id @default(cuid())
+  techCode        String
+  trade           Trade        @relation(fields: [tradeId], references: [id])
+  tradeId         String
+  repairCenter    RepairCenter @relation(fields: [repairCenterId], references: [id])
+  repairCenterId  String
+  workOrders      WorkOrder[]
+  FullName        String
+  FirstName       String
+  LastName        String
+  Email           String
+  Phone           String
+  TechnicianTitle String
+  password        String
+  roleId          String
+  role            Role?        @relation(fields: [roleId], references: [id])
+  Task            Task[]
+  active          Boolean      @default(true)
+  dateInact       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  adminId         String?
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String
+  permissions Json[]
+  technicians Technician[]
+}
+
+model Trade {
+  id             String       @id @default(cuid())
+  name           String
+  technicians    Technician[]
+  repairCenter   RepairCenter @relation(fields: [repairCenterId], references: [id])
+  repairCenterId String
+}
+
+model RepairCenter {
+  id          String       @id @default(cuid())
+  name        String
+  technicians Technician[]
+  trades      Trade[]
+  shops       Shop[]
+}
+
+model Shop {
+  id             String       @id @default(cuid())
+  name           String
+  repairCenter   RepairCenter @relation(fields: [repairCenterId], references: [id])
+  repairCenterId String
+}
+model Task {
+  id             String       @id @default(cuid())
+  name           String
+  description    String
+  workOrder      WorkOrder    @relation(fields: [workOrderId], references: [id])
+  workOrderId    String
+  taskType       TaskType     @relation(fields: [taskTypeId], references: [id])
+  taskTypeId     String
+  technicians    Technician[]
+  active         Boolean      @default(true)
+  dateInact      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  adminId        String?
+  isScheduled    Boolean      @default(false)
+  recurrenceType String? // 'DAILY', 'WEEKLY', 'MONTHLY', 'ANNUAL'
+  recurrenceDays String[] // Para tareas semanales
+  scheduleType   String? // 'ONE_TIME', 'RECURRING'
+  specificDate   DateTime? // Fecha específica para tareas únicas y anuales
+  dayMonth       Int? // Día del mes para tareas mensuales
+}
+
+
+model TaskType {
+  id    String @id @default(cuid())
+  name  String
+  tasks Task[]
+}
+
+model Zone {
+  id         String     @id @default(cuid())
+  name       String
+  facilities Facility[]
+  Floor      Floor[]
+}
